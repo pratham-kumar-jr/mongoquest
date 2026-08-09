@@ -1,0 +1,16 @@
+{
+  "name": "mongoquest",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Practise MongoDB queries in the browser – 110 exercises, cheatsheets and a live query runner.",
+  "scripts": {
+    "build": "node build.js",
+    "og": "node ogmake.js",
+    "verify": "node verify.js",
+    "test": "node browsertest.js",
+    "update-mingo": "npm i mingo@latest --no-save && cp node_modules/mingo/dist/mingo.min.js vendor/mingo.min.js && cp node_modules/mingo/LICENSE vendor/mingo-LICENSE.txt && node build.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}

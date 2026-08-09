@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pratham-kumar-jr.github.io/mongoquest/sitemap.xml
