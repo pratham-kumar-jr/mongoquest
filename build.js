@@ -154,20 +154,19 @@ ${js}
 </html>
 `;
 
-fs.mkdirSync(path.join(root, "dist"), { recursive: true });
-fs.writeFileSync(path.join(root, "dist", "index.html"), html);
+fs.writeFileSync(path.join(root, "index.html"), html);
 
-fs.writeFileSync(path.join(root, "dist", "robots.txt"),
+fs.writeFileSync(path.join(root, "robots.txt"),
   "User-agent: *\nAllow: /\n\nSitemap: " + SITE + "sitemap.xml\n");
 
-fs.writeFileSync(path.join(root, "dist", "sitemap.xml"),
+fs.writeFileSync(path.join(root, "sitemap.xml"),
   '<?xml version="1.0" encoding="UTF-8"?>\n' +
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
   '  <url>\n    <loc>' + SITE + '</loc>\n    <changefreq>monthly</changefreq>\n    <priority>1.0</priority>\n  </url>\n' +
   '</urlset>\n');
 
-console.log("dist/index.html", (Buffer.byteLength(html) / 1024).toFixed(0) + " KB");
-console.log("dist/robots.txt, dist/sitemap.xml");
+console.log("index.html", (Buffer.byteLength(html) / 1024).toFixed(0) + " KB");
+console.log("robots.txt, sitemap.xml");
 if (SITE.indexOf("YOUR-GITHUB-USERNAME") >= 0) {
   console.log("\n!! SITE is still a placeholder – set it in site.config.js before deploying.");
 }

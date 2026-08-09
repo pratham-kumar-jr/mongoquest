@@ -1,4 +1,4 @@
-/* Renders dist/og.png, the social preview card. */
+/* Renders og.png, the social preview card. */
 const { chromium } = require("playwright");
 const { AUTHOR } = require("./site.config");
 const { loadSrc } = require("./srcload");
@@ -44,6 +44,6 @@ p{font-size:27px;color:#9aa7b4;margin:18px 0 0;max-width:840px;line-height:1.45}
   const p = await b.newPage({ viewport: { width: WIDTH, height: HEIGHT } });
   await p.setContent(html);
   await p.waitForTimeout(300);
-  await p.screenshot({ path: "dist/og.png" });
+  await p.screenshot({ path: "og.png" });
   await b.close();
 })();

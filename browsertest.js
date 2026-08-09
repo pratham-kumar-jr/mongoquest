@@ -1,4 +1,4 @@
-/* Real-browser verification: load dist/index.html in Chromium and
+/* Real-browser verification: load index.html in Chromium and
    (1) run every reference solution through the page's own engine,
    (2) drive the UI end to end. */
 const { chromium } = require("playwright");
@@ -11,7 +11,7 @@ const path = require("path");
   page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
   page.on("console", (m) => { if (m.type() === "error") errors.push("console: " + m.text()); });
 
-  await page.goto("file://" + path.join(__dirname, "dist", "index.html"));
+  await page.goto("file://" + path.join(__dirname, "index.html"));
   await page.waitForSelector(".tnav");
 
   /* ---- 1. every solution runs, and validates against itself ---- */
@@ -180,10 +180,10 @@ const path = require("path");
      Both variants are generated from the built file, so the assertions hold
      whatever GA_ID site.config.js currently carries. */
   const fs = require("fs");
-  const built = fs.readFileSync(path.join(__dirname, "dist", "index.html"), "utf8");
+  const built = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
   const withId = (id) => built.replace(/var GA_ID = "[^"]*"/, 'var GA_ID = "' + id + '"');
   const variant = (name, id) => {
-    const f = path.join(__dirname, "dist", name);
+    const f = path.join(__dirname, name);
     fs.writeFileSync(f, withId(id));
     return f;
   };
@@ -201,7 +201,7 @@ const path = require("path");
   /* never phone home from a test run */
   await page.route(/googletagmanager|google-analytics/, (route) =>
     route.fulfill({ status: 200, contentType: "application/javascript", body: "" }));
-  await page.goto("file://" + path.join(__dirname, "dist", "index.html"));
+  await page.goto("file://" + path.join(__dirname, "index.html"));
   await page.waitForSelector(".tnav");
   await page.click('[data-topic="basics"]');
   await page.click('[data-q="b1"]');
@@ -275,14 +275,14 @@ const path = require("path");
   });
 
   // the static boot content must exist in the file crawlers download
-  const rawHtml = require("fs").readFileSync(path.join(__dirname, "dist", "index.html"), "utf8");
+  const rawHtml = require("fs").readFileSync(path.join(__dirname, "index.html"), "utf8");
   const seoStatic = {
     bootInSource: /Topics covered/.test(rawHtml),
     topicsListed: (rawHtml.match(/<li><b>/g) || []).length,
     noscript: /<noscript>/.test(rawHtml),
     placeholders: (rawHtml.match(/YOUR-GITHUB-USERNAME/g) || []).length
   };
-  const sidecars = ["robots.txt", "sitemap.xml", "og.png"].filter(f => require("fs").existsSync(path.join(__dirname, "dist", f)));
+  const sidecars = ["robots.txt", "sitemap.xml", "og.png"].filter(f => require("fs").existsSync(path.join(__dirname, f)));
 
   await page.setViewportSize({ width: 390, height: 800 });
   await page.click("#menu");
