@@ -75,7 +75,8 @@
         var tag = idx === 0 ? "th" : "td";
         html += "<tr>" + cells.map(function (c) { return "<" + tag + ">" + inlineMd(c.trim()) + "</" + tag + ">"; }).join("") + "</tr>";
       });
-      out.push(html + "</table>");
+      /* wrapped so a wide table scrolls inside itself instead of widening the page */
+      out.push('<div class="tw">' + html + "</table></div>");
       tableBuf = null;
     }
 
@@ -357,7 +358,12 @@
     else if (view.name === "data") renderData();
     trackPage();
     document.getElementById("main").scrollTop = 0;
-    document.getElementById("side").classList.remove("open");
+    drawer(false);
+  }
+
+  function drawer(open) {
+    document.getElementById("side").classList.toggle("open", open);
+    document.getElementById("scrim").classList.toggle("show", open);
   }
 
   document.addEventListener("click", function (e) {
@@ -380,8 +386,12 @@
   });
 
   document.getElementById("menu").onclick = function () {
-    document.getElementById("side").classList.toggle("open");
+    drawer(!document.getElementById("side").classList.contains("open"));
   };
+  document.getElementById("scrim").onclick = function () { drawer(false); };
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") drawer(false);
+  });
 
   render();
 })();

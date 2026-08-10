@@ -6,10 +6,17 @@
   var OUTDENT_RE = new RegExp("^ {1," + INDENT.length + "}");
   var MIN_ROWS = 7;
   var MAX_ROWS = 26;
-  /* Must match .ed-ta line-height and .ed-hl code vertical padding in styles.css. */
-  var ROW_H = 22;
-  var ED_CHROME = 26;
   var BRACKET_COLORS = 5;
+
+  /* Row height and padding come from the stylesheet, which changes them per
+     breakpoint, so they can never drift out of sync with the painted layer. */
+  function metrics(ta) {
+    var cs = getComputedStyle(ta);
+    return {
+      row: parseFloat(cs.lineHeight) || 22,
+      chrome: (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0)
+    };
+  }
 
   var KEYWORDS = { "true": 1, "false": 1, "null": 1, "undefined": 1, "new": 1, "NaN": 1, "Infinity": 1 };
   var FUNCS = {
@@ -215,6 +222,14 @@
     var scroll = host.querySelector(".ed-scroll");
     ta.value = initial || "";
 
+    /* Touch screens start wrapped: scrolling a query sideways with a thumb to
+       read the half of it that is off screen is not workable. */
+    if (global.matchMedia && global.matchMedia("(hover:none)").matches) {
+      host.classList.add("wrapped");
+      ta.setAttribute("wrap", "soft");
+      host.querySelector('[data-act="wrap"]').classList.add("on");
+    }
+
     var api = {
       get value() { return ta.value; },
       set value(v) { ta.value = v; paint(); },
@@ -247,8 +262,9 @@
       for (var i = 1; i <= lines; i++) g += i + "\n";
       gut.textContent = g;
 
+      var m = metrics(ta);
       var rows = Math.min(Math.max(lines + 1, MIN_ROWS), MAX_ROWS);
-      scroll.style.height = (rows * ROW_H + ED_CHROME) + "px";
+      scroll.style.height = (rows * m.row + m.chrome) + "px";
 
       var unbalanced = toks.filter(function (t) { return t.t === "br" && t.bad; }).length;
       stat.textContent = unbalanced ? unbalanced + " unmatched bracket" + (unbalanced > 1 ? "s" : "") : "";

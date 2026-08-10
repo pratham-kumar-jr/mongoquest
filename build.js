@@ -133,7 +133,7 @@ ${css}
 <div class="app">
   <header>
     <button class="btn sm menu-btn" id="menu">☰</button>
-    <div class="brand"><span class="leaf">🍃</span> MongoQuest <small>practise MongoDB queries</small></div>
+    <div class="brand"><span class="leaf">🍃</span><span class="name">MongoQuest</span><small>practise MongoDB queries</small></div>
     <div class="head-right">
       <div class="overall"><span id="otxt">0 / 0</span><span class="bar"><i id="obar" style="width:0%"></i></span></div>
     </div>
@@ -141,6 +141,7 @@ ${css}
   <aside id="side"></aside>
   <main id="main">${boot}</main>
 </div>
+<div class="scrim" id="scrim"></div>
 <div class="toast" id="toast"></div>
 
 <script>
