@@ -288,6 +288,38 @@ const path = require("path");
   await page.click("#menu");
   const sideOpen = await page.$eval("#side", (n) => n.classList.contains("open"));
 
+  /* ---- 7. move-out banner: carries progress to dbquest.in in the fragment ---- */
+  const pb = await browser.newPage();
+  const bErrors = [];
+  pb.on("pageerror", (e) => bErrors.push(e.message));
+  await pb.route(/googletagmanager|google-analytics/, (r) => r.fulfill({ status: 200, contentType: "application/javascript", body: "" }));
+  await pb.route("https://dbquest.in/**", (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<title>landed</title>" }));
+  await pb.goto("file://" + path.join(__dirname, "index.html"));
+  await pb.waitForSelector(".tnav");
+  const bannerFresh = await pb.evaluate(() => ({
+    text: document.querySelector("#moveout [data-moveout-text]").textContent,
+    btn: document.querySelector("[data-moveout]").textContent,
+    href: document.querySelector("[data-moveout]").getAttribute("href")
+  }));
+  // solve one, the link must now carry it
+  await pb.click('[data-topic="basics"]');
+  await pb.click('[data-q="b3"]');
+  await pb.fill(".ed-ta", 'db.restaurants.find({}, { name: 1, borough: 1, cuisine: 1, _id: 0 })');
+  await pb.click("#btnCheck");
+  await pb.waitForSelector(".verdict.ok");
+  await pb.click("#btnSol");
+  const bannerSolved = await pb.evaluate(() => ({
+    text: document.querySelector("#moveout [data-moveout-text]").textContent,
+    btn: document.querySelector("[data-moveout]").textContent,
+    href: document.querySelector("[data-moveout]").getAttribute("href")
+  }));
+  await pb.click("[data-moveout]");
+  await pb.waitForURL(/dbquest\.in/, { timeout: 5000 });
+  const landedUrl = pb.url();
+  let carried = null;
+  try { carried = JSON.parse(Buffer.from(decodeURIComponent(/#migrate=(.+)$/.exec(landedUrl)[1]), "base64").toString()); } catch (e) {}
+  await pb.close();
+
   await browser.close();
 
   console.log("questions:", res.total);
@@ -324,6 +356,16 @@ const path = require("path");
   console.log(seo);
   console.log("static:", seoStatic, "| sidecar files:", sidecars);
   console.log("page errors:", errors.length ? errors : "none");
+  console.log("\n--- move-out banner ---");
+  console.log("fresh:", JSON.stringify(bannerFresh));
+  console.log("after solving b3:", JSON.stringify({ text: bannerSolved.text, btn: bannerSolved.btn, href: bannerSolved.href.slice(0, 60) + "..." }));
+  console.log("landed:", landedUrl.slice(0, 50) + "...", "| carried:", JSON.stringify(carried), "| errors:", bErrors.length ? bErrors : "none");
+  const bannerOk = bannerFresh.href === "https://dbquest.in/" && /Go to dbquest\.in/.test(bannerFresh.btn)
+    && /1 solved question with you/.test(bannerSolved.text) && /Move my progress/.test(bannerSolved.btn)
+    && /^https:\/\/dbquest\.in\/#migrate=/.test(bannerSolved.href)
+    && carried && carried.p && carried.p.b3 === "solved" && carried.r && carried.r.b3 === true && !("drafts" in carried)
+    && bErrors.length === 0;
+  console.log("banner checks:", bannerOk ? "all pass" : "FAILED");
 
   const fatal = res.bad.length || neg.length || fmtSafe.length || errors.length || persisted !== "solved"
     || gaOff.enabled || gaOff.configured || gaReqsDefault.length
@@ -332,6 +374,7 @@ const path = require("path");
     || seo.ldErr || seo.og < 5 || seo.twitter < 3 || !seo.canonical
     || !seo.appAuthorLinked || !seo.bootGone || !seoStatic.bootInSource
     || seo.creditHref !== "https://www.linkedin.com/in/pratham-kumar-jr/"
-    || sidecars.length !== 3;
+    || sidecars.length !== 3
+    || !bannerOk;
   process.exit(fatal ? 1 : 0);
 })();

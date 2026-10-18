@@ -29,7 +29,8 @@ const js = [
   "src/questions.js",
   "src/engine.js",
   "src/editor.js",
-  "src/app.js"
+  "src/app.js",
+  "src/moveout.js"
 ].map((f) => "/* ===== " + path.basename(f) + " ===== */\n" + read(f)).join("\n\n");
 
 /* Crawlers that do not run JavaScript would otherwise see an empty <main>.
@@ -131,6 +132,11 @@ ${css}
 </head>
 <body>
 <div class="app">
+  <div class="moveout" id="moveout" role="region" aria-label="MongoQuest has moved">
+    <span class="mo-leaf">🍃</span>
+    <span class="mo-msg"><b>MongoQuest is now DBQuest.</b> <span data-moveout-text>Same exercises, new home.</span></span>
+    <a class="mo-btn" href="https://dbquest.in/" data-moveout rel="noopener">Go to dbquest.in →</a>
+  </div>
   <header>
     <button class="btn sm menu-btn" id="menu">☰</button>
     <div class="brand"><span class="leaf">🍃</span><span class="name">MongoQuest</span><small>practise MongoDB queries</small></div>

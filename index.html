@@ -124,7 +124,7 @@ button{font-family:inherit;font-size:inherit;cursor:pointer}
 code,pre,textarea{font-family:var(--mono)}
 
 /* ---------- layout ---------- */
-.app{display:grid;grid-template-columns:var(--side-w) 1fr;grid-template-rows:auto 1fr;height:100dvh;grid-template-areas:"head head" "side main"}
+.app{display:grid;grid-template-columns:var(--side-w) 1fr;grid-template-rows:auto auto 1fr;height:100dvh;grid-template-areas:"move move" "head head" "side main"}
 header{grid-area:head;display:flex;align-items:center;gap:1rem;padding:.75rem 1.25rem;border-bottom:.062rem solid var(--line);background:var(--bg2);min-width:0}
 .brand{display:flex;align-items:baseline;gap:.563rem;font-weight:700;letter-spacing:-.02em;font-size:1.063rem;min-width:0}
 .brand .leaf{color:var(--green);font-size:1.188rem;flex:none}
@@ -139,6 +139,18 @@ aside{grid-area:side;border-right:.062rem solid var(--line);background:var(--bg2
 main{grid-area:main;overflow-y:auto;overflow-x:hidden;padding:1.5rem 1.75rem 5rem}
 .wrap{max-width:57.5rem;margin:0 auto}
 .scrim{display:none}
+
+/* ---------- "we have moved" banner ---------- */
+.moveout{grid-area:move;display:flex;align-items:center;gap:.75rem;padding:.5rem 1.25rem;background:var(--green-soft);border-bottom:.062rem solid var(--green-dim);font-size:.813rem;color:var(--fg);min-width:0}
+.moveout .mo-leaf{flex:none}
+.moveout .mo-msg{flex:1;min-width:0;overflow-wrap:break-word}
+.moveout .mo-msg b{color:var(--green)}
+.moveout .mo-btn{flex:none;background:var(--green);color:#04150b;font-weight:650;padding:.375rem .75rem;border-radius:.5rem;font-size:.781rem;white-space:nowrap;min-height:2rem;display:inline-flex;align-items:center}
+.moveout .mo-btn:hover{background:#22f57a}
+@media (max-width:34rem){
+  .moveout{flex-wrap:wrap;gap:.375rem .5rem;padding:.5rem .75rem;font-size:.781rem}
+  .moveout .mo-btn{flex:1 1 100%;justify-content:center;min-height:var(--tap)}
+}
 
 /* ---------- sidebar ---------- */
 .side-label{font-size:.656rem;text-transform:uppercase;letter-spacing:.09em;color:var(--fg3);padding:.625rem .625rem .375rem;font-weight:700}
@@ -302,7 +314,7 @@ pre.out .c{color:var(--fg3)}
 
 /* ---------- tablet and below: sidebar becomes a drawer ---------- */
 @media (max-width:53.75rem){
-  .app{grid-template-columns:1fr;grid-template-areas:"head" "main"}
+  .app{grid-template-columns:1fr;grid-template-areas:"move" "head" "main"}
   aside{position:fixed;top:0;left:0;bottom:0;width:min(var(--side-w),82vw);z-index:40;transform:translateX(-100%);transition:transform .2s;grid-area:none;padding-bottom:2rem}
   aside.open{transform:none}
   .menu-btn{display:inline-flex}
@@ -387,6 +399,11 @@ pre.out .c{color:var(--fg3)}
 </head>
 <body>
 <div class="app">
+  <div class="moveout" id="moveout" role="region" aria-label="MongoQuest has moved">
+    <span class="mo-leaf">🍃</span>
+    <span class="mo-msg"><b>MongoQuest is now DBQuest.</b> <span data-moveout-text>Same exercises, new home.</span></span>
+    <a class="mo-btn" href="https://dbquest.in/" data-moveout rel="noopener">Go to dbquest.in →</a>
+  </div>
   <header>
     <button class="btn sm menu-btn" id="menu">☰</button>
     <div class="brand"><span class="leaf">🍃</span><span class="name">MongoQuest</span><small>practise MongoDB queries</small></div>
@@ -3091,6 +3108,80 @@ const QUESTIONS = [
   });
 
   render();
+})();
+
+
+/* ===== moveout.js ===== */
+/* "MongoQuest is now DBQuest" banner: a manual hand-off to the new origin.
+   localStorage is origin-scoped, so progress travels in the URL fragment as
+   #migrate=<base64 { p: progress, r: revealed }>, which src/migrate.js on
+   dbquest.in imports before its first render. Fragments never reach a server.
+   Phase 2 replaces this page with bridge/index.html, which does the same hop
+   automatically. */
+(function () {
+  "use strict";
+
+  var NEW = "https://dbquest.in/";
+  var STORE_KEY = "mongoquest.v1";
+  var MAX_WAIT_MS = 400;   /* how long we let analytics hold the navigation */
+
+  /* Local testing: on localhost or file://, ?to=http://localhost:8081/ overrides the target. */
+  var local = location.protocol === "file:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  if (local) {
+    var to = /[?&]to=([^&]+)/.exec(location.search);
+    if (to) NEW = decodeURIComponent(to[1]);
+  }
+
+  function readOld() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      var s = JSON.parse(raw), p = s.progress || {}, solved = 0;
+      for (var k in p) if (p[k] === "solved") solved++;
+      return { p: p, r: s.revealed || {}, solved: solved };
+    } catch (e) { return null; }
+  }
+
+  function targetUrl(old) {
+    if (!old) return NEW;
+    return NEW + "#migrate=" + encodeURIComponent(btoa(JSON.stringify({ p: old.p, r: old.r })));
+  }
+
+  var banner = document.getElementById("moveout");
+  if (!banner) return;
+  var btn = banner.querySelector("[data-moveout]");
+  var txt = banner.querySelector("[data-moveout-text]");
+
+  function paint() {
+    var old = readOld(), n = old ? old.solved : 0;
+    txt.textContent = n > 0
+      ? "Take your " + n + " solved question" + (n === 1 ? "" : "s") + " with you."
+      : "Same exercises, new home.";
+    btn.textContent = n > 0 ? "Move my progress →" : "Go to dbquest.in →";
+    btn.setAttribute("href", targetUrl(old));
+  }
+  paint();
+  /* progress changes while the page is open: keep the link current */
+  document.addEventListener("click", function () { setTimeout(paint, 0); });
+
+  btn.addEventListener("click", function (e) {
+    e.preventDefault();
+    var old = readOld();
+    var url = targetUrl(old);
+    var gone = false;
+    function go() { if (gone) return; gone = true; location.href = url; }
+    var live = window.MQA && MQA.enabled && typeof window.gtag === "function";
+    if (!live) return go();
+    try {
+      gtag("event", "migrate_click", {
+        had_progress: !!old,
+        solved: old ? old.solved : 0,
+        transport_type: "beacon",
+        event_callback: go
+      });
+    } catch (err) { return go(); }
+    setTimeout(go, MAX_WAIT_MS);
+  });
 })();
 
 </script>
