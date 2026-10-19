@@ -7,17 +7,17 @@ repo's git history before the redirect commit.
 
 ## What `index.html` does
 
-Visitors to https://pratham-kumar-jr.github.io/mongoquest/ are sent to
-https://dbquest.in/ automatically. Saved progress is carried across: the page
-reads the old `mongoquest.v1` localStorage, packs progress and revealed flags
-into the URL fragment as `#migrate=<base64>`, and dbquest.in imports it before
+Visitors to https://pratham-kumar-jr.github.io/mongoquest/ see a short notice
+and are sent to https://dbquest.in/ after five seconds, or at once via "Go now". Saved progress is carried across: the page
+reads the old `mongoquest.v1` localStorage, packs progress, revealed flags and
+up to 30 KB of editor drafts into the URL fragment as `#migrate=<base64>`, and dbquest.in imports it before
 its first render. localStorage is origin-scoped, so this hop is the only way the
 data gets there. Fragments never reach a server.
 
-Before leaving, the page sends one `bridge_redirect` event to the shared GA4
-property as a beacon and waits for it at most one second. Visitors with Do Not
-Track, blocked analytics or no JavaScript are redirected at once or via the
-fallback link.
+On load the page sends one `bridge_redirect` event to the shared GA4 property
+as a beacon; the countdown never waits on it. Visitors with Do Not Track or
+blocked analytics get the same countdown without the tag; without JavaScript the
+links still point at dbquest.in, though progress cannot be read.
 
 The page carries `rel="canonical"` pointing at dbquest.in and is left
 indexable, so the search signal this URL earned consolidates onto the new domain

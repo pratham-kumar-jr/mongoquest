@@ -14,19 +14,32 @@
   body{background:#0e1116;color:#e6edf3;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
        display:grid;place-items:center;height:100vh;margin:0;text-align:center;padding:1rem}
   a{color:#00ed64}
+  .leaf{font-size:2.5rem;line-height:1;margin:0 0 .5rem}
+  h1{font-size:1.375rem;margin:0 0 .375rem;letter-spacing:-.01em}
+  p{margin:.25rem 0;color:#9aa7b4}
+  .go{display:inline-block;margin-top:1rem;background:#00ed64;color:#04150b;font-weight:650;padding:.625rem 1.125rem;border-radius:.5rem;text-decoration:none}
+  .go:hover{background:#22f57a}
+  .small{font-size:.813rem;color:#6b7785}
 </style>
 </head>
 <body>
-<p>MongoQuest is now <a href="https://dbquest.in/">dbquest.in</a><br>taking you there…</p>
+<div>
+  <p class="leaf">🍃</p>
+  <h1>MongoQuest is now DBQuest</h1>
+  <p>Same exercises, new home at <a href="https://dbquest.in/" id="link">dbquest.in</a>.</p>
+  <p id="progress"></p>
+  <p class="small">Taking you there in <span id="count">5</span> seconds…</p>
+  <a class="go" href="https://dbquest.in/" id="go">Go now →</a>
+</div>
 <script>
 /* Progress lives in this origin's localStorage, which dbquest.in cannot read.
-   It travels in the URL fragment as #migrate=<base64 { p: progress, r: revealed }>;
+   It travels in the URL fragment as #migrate=<base64 { p: progress, r: revealed, d: drafts }>;
    dbquest.in imports it before its first render. Fragments never reach a server. */
 (function () {
   var NEW = "https://dbquest.in/";
   /* Same GA4 property as dbquest.in; reports split the two by hostname. */
   var GA_ID = "G-BBDL4J3G59";
-  var MAX_WAIT_MS = 1000;   /* never hold a visitor hostage to analytics */
+  var WAIT_S = 5;   /* show the notice before leaving; "Go now" skips the wait */
 
   /* Local testing only: on localhost or file://, ?to=http://localhost:8081/
      overrides the target and analytics is skipped. */
@@ -36,37 +49,65 @@
     if (to) NEW = decodeURIComponent(to[1]);
   }
 
+  var DRAFT_BUDGET = 30000;   /* chars of draft text; keeps the fragment well inside browser URL limits */
+  var SKELETON = /^db\.\w+\.(find\(\)|aggregate\(\[\s*\]\))$/;   /* an untouched editor, not worth carrying */
+
   var tail = "", hadProgress = false, solved = 0;
   try {
     var raw = localStorage.getItem("mongoquest.v1");
     if (raw) {
-      var s = JSON.parse(raw), p = s.progress || {};
+      var s = JSON.parse(raw), p = s.progress || {}, all = s.drafts || {};
       hadProgress = true;
       for (var k in p) if (p[k] === "solved") solved++;
-      // progress + revealed only. drafts are bulky and nobody misses them.
-      tail = "#migrate=" + encodeURIComponent(btoa(JSON.stringify({ p: p, r: s.revealed || {} })));
+      /* drafts: smallest first until the budget is spent, so a few huge ones can't crowd out the rest */
+      var ids = Object.keys(all).filter(function (id) {
+        return typeof all[id] === "string" && all[id].trim() && !SKELETON.test(all[id].trim());
+      }).sort(function (a, b) { return all[a].length - all[b].length; });
+      var d = {}, used = 0;
+      for (var i = 0; i < ids.length; i++) {
+        if (used + all[ids[i]].length > DRAFT_BUDGET) break;
+        d[ids[i]] = all[ids[i]]; used += all[ids[i]].length;
+      }
+      /* encodeURIComponent first so btoa never sees a non-Latin1 char */
+      tail = "#migrate=" + encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify({ p: p, r: s.revealed || {}, d: d })))));
     }
   } catch (e) {}
 
+  var target = NEW + tail;
   var gone = false;
-  function go() { if (gone) return; gone = true; location.replace(NEW + tail); }
+  function go() { if (gone) return; gone = true; location.replace(target); }
+
+  /* both links carry the payload, so "Go now" (or a middle-click) migrates too */
+  var links = [document.getElementById("link"), document.getElementById("go")];
+  for (var i = 0; i < links.length; i++) {
+    links[i].href = target;
+    links[i].addEventListener("click", function (e) { e.preventDefault(); go(); });
+  }
+  if (solved > 0) {
+    document.getElementById("progress").textContent =
+      "Your " + solved + " solved question" + (solved === 1 ? "" : "s") + " will come with you.";
+  }
+  var left = WAIT_S, countEl = document.getElementById("count");
+  var timer = setInterval(function () {
+    left--;
+    if (left <= 0) { clearInterval(timer); go(); return; }
+    countEl.textContent = left;
+  }, 1000);
 
   var dnt = navigator.doNotTrack === "1" || window.doNotTrack === "1" || navigator.msDoNotTrack === "1";
-  if (dnt || local) return go();
+  if (dnt || local) return;   /* no analytics; the countdown still runs */
 
   try {
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
     gtag("js", new Date());
     gtag("config", GA_ID, { transport_type: "beacon" });   /* beacon survives the navigation */
-    gtag("event", "bridge_redirect", { had_progress: hadProgress, solved: solved, transport_type: "beacon", event_callback: go });
+    gtag("event", "bridge_redirect", { had_progress: hadProgress, solved: solved, transport_type: "beacon" });
     var sc = document.createElement("script");
     sc.async = true;
     sc.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID;
-    sc.onerror = go;   /* blocked or offline: leave at once */
     document.head.appendChild(sc);
-  } catch (e) { go(); }
-  setTimeout(go, MAX_WAIT_MS);
+  } catch (e) {}
 })();
 </script>
 <noscript><p><a href="https://dbquest.in/">Continue to dbquest.in</a></p></noscript>
