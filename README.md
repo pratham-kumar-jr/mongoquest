@@ -1,60 +1,36 @@
-# MongoQuest
+# MongoQuest has moved to DBQuest
+**The live site is https://dbquest.in** – same exercises, new home.
 
-Practise MongoDB queries in the browser. 110 exercises across 12 topics, a
-cheatsheet for each one, and a runner that tells you whether your answer is
-actually right.
+This repository used to hold the MongoQuest app. It now contains only a redirect
+page. Development continues in the `dbquest` repository; the old code is in this
+repo's git history before the redirect commit.
 
-https://pratham-kumar-jr.github.io/mongoquest/
+## What `index.html` does
 
-## The problem
+Visitors to https://pratham-kumar-jr.github.io/mongoquest/ are sent to
+https://dbquest.in/ automatically. Saved progress is carried across: the page
+reads the old `mongoquest.v1` localStorage, packs progress and revealed flags
+into the URL fragment as `#migrate=<base64>`, and dbquest.in imports it before
+its first render. localStorage is origin-scoped, so this hop is the only way the
+data gets there. Fragments never reach a server.
 
-Getting better at MongoDB queries means writing a lot of them, and that usually
-stalls before it starts. To practise `$unwind` or `$lookup` you first need a
-database running, a dataset big enough to be interesting but small enough to
-reason about, and some way of knowing whether what you just wrote is correct.
+Before leaving, the page sends one `bridge_redirect` event to the shared GA4
+property as a beacon and waits for it at most one second. Visitors with Do Not
+Track, blocked analytics or no JavaScript are redirected at once or via the
+fallback link.
 
-Most people skip all that and read the documentation instead. Documentation
-tells you what an operator does. It does not tell you which one to reach for
-when the question is "count how many grades of each letter exist across all
-restaurants", and it never tells you that your answer was wrong.
+The page carries `rel="canonical"` pointing at dbquest.in and is left
+indexable, so the search signal this URL earned consolidates onto the new domain
+instead of being discarded.
 
-## What this does about it
+## Rules
 
-Everything runs in the browser with the data already loaded. You get a question,
-you write a real query, you run it, and it gets checked immediately.
+- **Never set a custom domain on this repo.** GitHub's own redirect would fire
+  before the script runs and visitors would arrive without their progress.
+- Keep the file as a single self-contained page. There is no build step.
 
-Answers are compared by result, not by text. Your query and the reference
-solution both execute against the same collections and the two outputs are
-compared, so any query that returns the right documents is accepted no matter
-how you wrote it. Order only counts on questions that are about sorting.
+## Local test
 
-The datasets are deliberately small, 8 to 24 documents each, so you can read a
-collection top to bottom and work out what the answer should be before you write
-anything. That is the part a huge sample dataset takes away from you.
-
-## What's covered
-
-Finding & Projection, Comparison Operators, Logical Operators, Element & Type,
-Pattern Matching, Sort/Limit/Skip, Array Queries, Embedded Documents,
-Aggregation Basics, Grouping & Accumulators, `$unwind` & Array Pipelines, and
-Joins & Advanced Stages.
-
-Six collections to query: restaurants, movies, customers, products, orders and
-employees, wired together so joins and lookups have something real to join on.
-
-Each topic has its own cheatsheet next to the questions, and there is a combined
-one covering all twelve.
-
-## Scope
-
-It teaches the read path. No writes, no indexes, no `explain()`, no `$text` or
-geospatial operators. Queries execute through
-[mingo](https://github.com/kofrasa/mingo) rather than a real server, so this is
-for learning query shapes, not for anything about performance or deployment.
-
-No signup, no accounts, no backend. Progress is saved in localStorage, and the
-whole app is a single HTML file that works offline once loaded.
-
-## Licence
-
-mingo is MIT and bundled. The rest, do what you like with.
+Serve this folder on one port and `dbquest` on another, then open
+`http://localhost:8080/?to=http://localhost:8081/`. The `?to=` override and the
+analytics skip only apply on localhost or `file://`.
